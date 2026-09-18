@@ -9,6 +9,18 @@ with the pre-1.0 rule that a breaking change bumps the MINOR number.
 
 The documentation and comments in plain prose; no declaration changed.
 
+### Corrected against the HarfBuzz reference
+
+- Three entry points carry `[io, ffi]`: one opens a file and two read
+  the process locale.
+- A vertical advance is negative for every font, because HarfBuzz
+  counts the downward direction as negative.
+- The cluster levels are 0 for monotone values grouped by grapheme, 1
+  for monotone values that are not grouped, and 2 for values that are
+  neither.
+- `hb_font_create` takes a reference to the face, so releasing the
+  face after creating the font is correct.
+
 ## 0.1.0 — 2026-09-16
 
 The first release: sixty-seven entry points of the HarfBuzz C API, one
