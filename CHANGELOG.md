@@ -5,6 +5,10 @@ is [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 package follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 with the pre-1.0 rule that a breaking change bumps the MINOR number.
 
+## 0.1.1 — 2026-09-18
+
+The documentation and comments in plain prose; no declaration changed.
+
 ## 0.1.0 — 2026-09-16
 
 The first release: sixty-seven entry points of the HarfBuzz C API, one
@@ -57,9 +61,9 @@ The first release: sixty-seven entry points of the HarfBuzz C API, one
 HarfBuzz gives a shaped run back as two arrays behind pointers, one of
 glyph information and one of glyph positions, with one twenty-byte
 record per glyph in each. Nothing is passed or returned by value, so
-the whole shaping interface binds; what the caller does by hand is walk
-the two arrays at a stride of twenty bytes and read four-byte fields
-out of them. The README's rules 6 and 7 carry the layouts.
+every shaping call binds. What the caller does by hand is walk the two
+arrays at a stride of twenty bytes and read four-byte fields out of
+them. The README's rules 6 and 7 carry the layouts.
 
 ### Named as missing
 
@@ -70,13 +74,13 @@ different 32 bits of the register, and gets 0.0 for every value whose
 double has an empty low half — which is every round number. That
 removes `hb_font_set_ptem` and `hb_font_get_ptem`,
 `hb_font_set_synthetic_bold` and `hb_font_get_synthetic_slant`, and the
-whole OpenType variable-font interface, because an `hb_variation_t`
+whole OpenType variable-font C API, because an `hb_variation_t`
 carries a `float` value and `hb_font_set_var_coords_design` takes an
 array of them. The defect is filed as
 `an-ffi-float-is-lowered-as-a-c-double-so-a-c-function-taking-or-returning-float-gets-the-wrong-number`.
 
 **The font functions.** `hb_font_funcs_create` and the twenty
-`hb_font_funcs_set_*_func` calls install C FUNCTION POINTERS that
+`hb_font_funcs_set_*_func` calls install C function pointers that
 answer a glyph's advance, extents and name. They are how a program
 plugs its own font back end into HarfBuzz, and a novo-lang program
 cannot produce one. `hb_ot_font_set_funcs` installs HarfBuzz's own
@@ -107,10 +111,3 @@ library.
 **`hb_buffer_diff`, `hb_buffer_deserialize_glyphs` and the segment
 property record.** They are left out of the first release.
 
-### Not a `0.0.x` interface release
-
-An interface release is the shape whose every `pub fn` body is a
-`todo()`. Every `pub fn` here is an `@ffi` declaration with no body, so
-`novo pkg publish` reads the package as a release with bodies and
-refuses a `0.0.x` version for it. The first release of a bindings
-package is therefore `0.1.0`.

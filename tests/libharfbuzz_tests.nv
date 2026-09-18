@@ -2,13 +2,13 @@
 //
 // Every test below calls into the C library, so the suite needs
 // HarfBuzz installed and linked.  `novo pkg build` type-checks the
-// declarations without it; `novo test` runs them and does not.
+// declarations without it.  `novo test` runs them and does not.
 //
 // The suite carries its own font as hex.  It is a 776-byte TrueType
-// font built for these tests with three glyphs — the substitute glyph,
-// a square named "square" mapped from U+0041 and a triangle named
-// "triangle" mapped from U+0042 — and it is wrapped in a blob from
-// memory, so the suite reads and writes nothing.
+// font built for these tests, and it has three glyphs.  They are the
+// substitute glyph, a square named "square" mapped from U+0041 and a
+// triangle named "triangle" mapped from U+0042.  The font is wrapped
+// in a blob from memory, so the suite reads and writes nothing.
 
 use std.test
 use libharfbuzz
@@ -235,7 +235,8 @@ fn test_a_font_answers_a_glyph_for_a_character_and_its_advances() [io, ffi]
     // The scale is twice the design units, so the advance is doubled.
     let advance = libharfbuzz.hb_font_get_glyph_h_advance(font, 1) as i32
     test.assert(advance == ADVANCE * SCALE / UPEM)
-    // A font with no vertical metrics answers a NEGATIVE advance.
+    // A vertical advance is negative, and this font has no vertical
+    // metrics of its own.
     let down = libharfbuzz.hb_font_get_glyph_v_advance(font, 1) as i32
     test.assert(down < 0)
     libharfbuzz.hb_font_destroy(font)
@@ -252,7 +253,7 @@ fn test_a_font_answers_extents_and_glyph_names() [io, ffi]
     // The square is 500 design units wide, doubled by the scale.
     test.assert(i32_at(extents + 8) == 1000)
     // The height is measured downwards from the top bearing, so it is
-    // NEGATIVE, and the top bearing is above the baseline.
+    // negative, and the top bearing is above the baseline.
     let height = i32_at(extents + 12)
     let top = i32_at(extents + 4)
     test.assert(height < 0)
@@ -265,7 +266,7 @@ fn test_a_font_answers_extents_and_glyph_names() [io, ffi]
     let ascender = i32_at(font_extents)
     let descender = i32_at(font_extents + 4)
     test.assert(ascender > 0)
-    // The descender is NEGATIVE, because it is below the baseline.
+    // The descender is negative, because it is below the baseline.
     test.assert(descender < 0)
     let name = ptr.alloc(64)
     test.assert(libharfbuzz.hb_font_get_glyph_name(font, 1, name, 64) == 1)
@@ -315,7 +316,7 @@ fn test_a_buffer_is_told_its_properties_and_emptied_two_ways() [io, ffi]
     libharfbuzz.hb_buffer_set_direction(buffer, DIRECTION_RTL)
     libharfbuzz.hb_buffer_set_script(buffer, SCRIPT_LATIN)
     libharfbuzz.hb_buffer_set_language(buffer, libharfbuzz.hb_language_from_string("en", -1))
-    // The default cluster level keeps the clusters a shaper merges.
+    // The default cluster level groups the cluster values by grapheme.
     test.assert(libharfbuzz.hb_buffer_get_cluster_level(buffer) == 0)
     libharfbuzz.hb_buffer_set_cluster_level(buffer, 1)
     test.assert(libharfbuzz.hb_buffer_get_cluster_level(buffer) == 1)

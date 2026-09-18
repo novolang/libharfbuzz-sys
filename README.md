@@ -8,12 +8,12 @@ behind Firefox, Chrome, Android, LibreOffice and most of the Linux
 desktop. This package declares sixty-seven of that library's entry
 points to novo-lang, one declaration each.
 
-**Status: a binding, not a port.** Every function in this package is a
-declaration of a function in HarfBuzz. The package contains no logic of
-its own, and it does nothing without the C library installed. The
-sixty-seven entry points are the ones a program needs to load a font,
-shape a run and read the result; the section "What is not included"
-says what a program still cannot do with them alone.
+Every function in this package is a declaration of a function in
+HarfBuzz. The package contains no logic of its own, and it does nothing
+without the C library installed. The sixty-seven entry points are the
+ones a program needs to load a font, shape a run and read the result.
+The section "What is not included" says what a program still cannot do
+with them alone.
 
 ## What it is
 
@@ -110,10 +110,11 @@ fn main() [io, fs, ffi]
     ptr.free(font_bytes)
 ```
 
-The example is fenced as an illustration rather than a compiled block
-because `novo doc` compiles the blocks in documentation comments and not
-the ones in this file. The same calls are in
-`tests/libharfbuzz_tests.nv`, where the numbers are asserted.
+The example is fenced as an illustration rather than as a compiled
+block. `novo doc` links a compiled block against the C library, so the
+block would fail on a machine that does not have HarfBuzz installed.
+The same calls are in `tests/libharfbuzz_tests.nv`, where the numbers
+are asserted.
 
 ## What the package contains
 
@@ -175,9 +176,9 @@ created in.
 4. **An answer that is a position is a signed 32-bit number, and some
    of them are negative.** Bind the answer to a local with `as i32`
    before comparing it with zero. `hb_font_get_glyph_v_advance` is
-   negative for a font with no vertical metrics, a glyph's extents
-   height is negative because the box is measured downwards, and a
-   font's descender is negative.
+   negative because the downward direction is negative, a glyph's
+   extents height is negative because the box is measured downwards,
+   and a font's descender is negative.
 5. **A scale is a multiplier, not a size.** Every position a font
    answers is the design-unit value times the scale divided by the
    face's units per em. A scale equal to the units per em answers
@@ -245,9 +246,9 @@ created in.
 - **Every entry point whose parameter or return type is a C `float`.**
   An `@ffi` declaration has one floating point type, and it is a C
   `double`. That leaves out `hb_font_set_ptem`, `hb_font_get_ptem`,
-  `hb_font_set_synthetic_bold`, `hb_font_get_synthetic_slant`, and the
-  whole OpenType variable-font interface, because a variation carries
-  a `float` value.
+  `hb_font_set_synthetic_bold`, `hb_font_get_synthetic_slant`, and
+  every call of the OpenType variable-font C API, because a variation
+  carries a `float` value.
 - **The font functions.** `hb_font_funcs_create` and the twenty
   `hb_font_funcs_set_*_func` calls install C function pointers that
   answer a glyph's advance, extents and name, and the novo-lang foreign
@@ -266,6 +267,9 @@ created in.
 - **The subsetting interface.** The `hb_subset_*` calls are in the
   separate library `libharfbuzz-subset`, and one `sys` package wraps
   one library.
+- **The face builder.** `hb_face_builder_create` and
+  `hb_face_builder_add_table` assemble a face out of tables held in
+  memory. They are left out of the first release.
 - **`hb_buffer_diff` and `hb_buffer_deserialize_glyphs`.** They are
   left out of the first release.
 
@@ -286,8 +290,8 @@ metrics out of a font file, which is a different job from shaping.
 
 ## Tests
 
-`tests/libharfbuzz_tests.nv` holds thirteen tests written against the
-signatures. They call the C library, so `novo test` needs HarfBuzz
+`tests/libharfbuzz_tests.nv` holds thirteen tests over the sixty-seven
+entry points. They call the C library, so `novo test` needs HarfBuzz
 installed and linkable:
 
 ```
@@ -318,24 +322,6 @@ serialised form `[square=0+1400|triangle=1+1400]`.
 run. They are the `ptr.read_str` and `ptr.read_bytes_n` copies the
 tests make out of the library's own strings; both are declared
 untracked, which is a defect in the toolchain and not in this package.
-
-## Implementation status
-
-| Group | State |
-| --- | --- |
-| Version and enumerations | Complete. |
-| The blob | Complete for the create, the two accessors and the release. |
-| The face | Complete for the read-only interface. |
-| The font | Complete for the OpenType glyph functions. |
-| The buffer | Complete for text in and glyphs out. |
-| Shaping | Complete, with the features and the two serialisation calls. |
-| OpenType layout | The two questions a caller asks before shaping. |
-| The point size and the synthetic styles | Absent. Their arguments are C `float`. |
-| Variable fonts | Absent. A variation carries a C `float`. |
-| The font and Unicode functions | Absent. They are C function pointers. |
-| The draw and paint interfaces | Absent. They are structures of C function pointers. |
-| Subsetting | Absent. It is a second library. |
-| The face builder | Absent. Left out of the first release. |
 
 ## Licence
 

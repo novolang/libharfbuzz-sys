@@ -1,6 +1,6 @@
 // The C entry points of libharfbuzz, one novo-lang declaration each.
 //
-// A pointer is an `Int`: the C API hands out reference-counted handles
+// A pointer is an `Int`.  The C API hands out reference-counted handles
 // for the blob, the face, the font and the buffer, and an interned
 // handle for a language, and this module carries each of them as the
 // address the C library returned.  Zero is the null pointer.
@@ -9,9 +9,9 @@
 // calls that answer two things at once write the second into one.
 // `ptr.alloc_word` reserves a slot and `ptr.read_word` reads it back.
 //
-// HarfBuzz answers a run of shaped text as TWO ARRAYS behind pointers,
+// HarfBuzz answers a run of shaped text as two arrays behind pointers,
 // one of glyph information and one of glyph positions, both with one
-// twenty-byte record per glyph.  The caller walks them by offset; the
+// twenty-byte record per glyph.  The caller walks them by offset.  The
 // README's "The rules a user needs" section carries the layout.
 //
 // A `hb_position_t` is a signed 32-bit number and a vertical advance
@@ -21,22 +21,22 @@
 // A tag is four characters read as a big-endian 32-bit number, which
 // is how HarfBuzz names an OpenType table, a feature, a script and a
 // serialisation format.  `hb_tag_from_string` builds one and
-// `hb_tag_to_string` writes it back out, into four bytes that are NOT
+// `hb_tag_to_string` writes it back out, into four bytes that are not
 // null-terminated.
 //
 // Almost every entry point here is pure computation over memory the
-// caller already holds, so the effect row is `[ffi]`.  The two that
-// reach outside carry `[io, ffi]`: one opens a file, and one reads the
+// caller already holds, so the effect row is `[ffi]`.  The three that
+// reach outside carry `[io, ffi]`.  One opens a file, and two read the
 // process locale.
 //
 // Every entry point whose parameter or return type is a C `float` is
 // absent as well.  An `@ffi` declaration has one floating point type,
-// `Float`, and it is a C `double`; a C function reading a `float`
+// `Float`, and it is a C `double`.  A C function reading a `float`
 // parameter reads a different 32 bits of the register and gets 0.0.
-// That removes the point size, the synthetic bold and slant, and the
-// whole variable-font interface, whose axis coordinates are `float`.
+// That removes the point size, the synthetic bold and slant, and every
+// call of the variable-font C API, whose axis coordinates are `float`.
 //
-// Every entry point that takes a C FUNCTION POINTER is absent, which
+// Every entry point that takes a C function pointer is absent, which
 // for HarfBuzz means the whole `hb_font_funcs_t` and
 // `hb_unicode_funcs_t` families and the buffer message callback.
 // `hb_blob_create` is here with its destroy argument declared as an
@@ -69,7 +69,7 @@ fn hb_tag_from_string(str: Str, len: Int) -> Int [ffi]
 // Write a tag back out as four characters.
 //
 // `buf` is the address of at least four bytes.  Exactly four are
-// written and there is NO terminator, so read them with
+// written and there is no terminator, so read them with
 // `ptr.read_bytes_n(buf, 4)` rather than with `ptr.read_str`.
 pub @ffi(library = "harfbuzz", symbol = "hb_tag_to_string")
 fn hb_tag_to_string(tag: Int, buf: Int) [ffi]
@@ -134,7 +134,7 @@ fn hb_language_get_default() -> Int [io, ffi]
 // `data` and `length` are the bytes.  `mode` is 0 to copy them, 1 to
 // borrow them read-only, 2 to borrow them writable and 3 to borrow
 // them and copy on the first write.  `user_data` and `destroy` belong
-// to the C caller that hands ownership over; a novo-lang program
+// to the C caller that hands ownership over.  A novo-lang program
 // passes 0 for both, and with `mode` 0 it may free its own bytes as
 // soon as this call returns.  Answers the blob, or the empty blob on
 // failure.
@@ -170,7 +170,7 @@ fn hb_blob_destroy(blob: Int) [ffi]
 
 // Get how many faces a blob holds.
 //
-// A TrueType collection holds several; an ordinary font file holds
+// A TrueType collection holds several.  An ordinary font file holds
 // one.  Answers 0 when the bytes are not a font.
 pub @ffi(library = "harfbuzz", symbol = "hb_face_count")
 fn hb_face_count(blob: Int) -> Int [ffi]
@@ -226,6 +226,8 @@ fn hb_face_get_table_tags(face: Int, start_offset: Int, table_count: Int,
 // The font is the face at a scale.  It starts with the OpenType glyph
 // functions installed and with its scale set to the face's design
 // units per em, so a font that is never scaled answers design units.
+// The font takes a reference to the face, so releasing the face after
+// creating the font is correct.
 pub @ffi(library = "harfbuzz", symbol = "hb_font_create")
 fn hb_font_create(face: Int) -> Int [ffi]
 
@@ -266,7 +268,7 @@ fn hb_font_get_scale(font: Int, x_scale: Int, y_scale: Int) [ffi]
 //
 // These read the advances, the extents and the names out of the
 // font's own tables.  A font created by `hb_font_create` already has
-// them; a font built some other way needs the call.
+// them.  A font built some other way needs the call.
 pub @ffi(library = "harfbuzz", symbol = "hb_ot_font_set_funcs")
 fn hb_ot_font_set_funcs(font: Int) [ffi]
 
@@ -287,9 +289,11 @@ fn hb_font_get_glyph_h_advance(font: Int, glyph: Int) -> Int [ffi]
 
 // Get a glyph's vertical advance, in the font's scale.
 //
-// It is NEGATIVE for a font with no vertical metrics of its own,
-// because HarfBuzz synthesises a downward advance from the horizontal
-// line height.  Bind it with `as i32` before comparing it with zero.
+// A vertical advance is negative, because HarfBuzz counts the
+// downward direction as negative.  A font with no vertical metrics of
+// its own gets one synthesised from the horizontal ascender and
+// descender, and that answer is negative as well.  Bind it with
+// `as i32` before comparing it with zero.
 pub @ffi(library = "harfbuzz", symbol = "hb_font_get_glyph_v_advance")
 fn hb_font_get_glyph_v_advance(font: Int, glyph: Int) -> Int [ffi]
 
@@ -297,7 +301,7 @@ fn hb_font_get_glyph_v_advance(font: Int, glyph: Int) -> Int [ffi]
 //
 // `extents` is the address of a 16-byte record receiving four signed
 // 32-bit values: the left bearing, the top bearing, the width and the
-// height.  The height is NEGATIVE, because the box is measured
+// height.  The height is negative, because the box is measured
 // downwards from the top bearing.  Answers 1 on success.
 pub @ffi(library = "harfbuzz", symbol = "hb_font_get_glyph_extents")
 fn hb_font_get_glyph_extents(font: Int, glyph: Int, extents: Int) -> Int [ffi]
@@ -306,8 +310,8 @@ fn hb_font_get_glyph_extents(font: Int, glyph: Int, extents: Int) -> Int [ffi]
 //
 // `extents` is the address of a 48-byte record whose first three
 // signed 32-bit values are the ascender, the descender and the line
-// gap; the rest is reserved.  The descender is NEGATIVE.  Answers 1 on
-// success.
+// gap.  The rest is reserved.  The descender is negative.  Answers 1
+// on success.
 pub @ffi(library = "harfbuzz", symbol = "hb_font_get_h_extents")
 fn hb_font_get_h_extents(font: Int, extents: Int) -> Int [ffi]
 
@@ -357,7 +361,7 @@ fn hb_buffer_clear_contents(buffer: Int) [ffi]
 //
 // `text_length` is the length of `text` in bytes, and -1 means "up to
 // the terminator".  `item_offset` and `item_length` select the part of
-// it to shape, and -1 for the length means "to the end"; the bytes
+// it to shape, and -1 for the length means "to the end".  The bytes
 // outside that part are still read, because they are the context the
 // shaper needs to join a letter to its neighbour.
 pub @ffi(library = "harfbuzz", symbol = "hb_buffer_add_utf8")
@@ -432,9 +436,10 @@ fn hb_buffer_guess_segment_properties(buffer: Int) [io, ffi]
 
 // Set how finely a buffer reports clusters.
 //
-// 0 keeps the clusters a shaper merges, which is what a text editor
-// wants; 1 leaves the monotone character indices alone; 2 leaves the
-// characters alone entirely.  The default is 0.
+// 0 groups the cluster values by grapheme and keeps them in monotone
+// order, which is what a text editor wants.  1 keeps them in monotone
+// order without grouping them by grapheme.  2 leaves the cluster
+// values ungrouped.  The default is 0.
 pub @ffi(library = "harfbuzz", symbol = "hb_buffer_set_cluster_level")
 fn hb_buffer_set_cluster_level(buffer: Int, cluster_level: Int) [ffi]
 
@@ -478,8 +483,8 @@ fn hb_buffer_get_glyph_positions(buffer: Int, length: Int) -> Int [ffi]
 //
 // The buffer's characters are replaced by the glyphs that draw them,
 // and the positions are filled in.  `features` is the address of an
-// array of 16-byte feature records and `num_features` is how many; 0
-// and 0 select the font's own defaults.
+// array of 16-byte feature records and `num_features` is how many.  A
+// 0 for both selects the font's own defaults.
 pub @ffi(library = "harfbuzz", symbol = "hb_shape")
 fn hb_shape(font: Int, buffer: Int, features: Int, num_features: Int) [ffi]
 
@@ -521,7 +526,7 @@ fn hb_feature_to_string(feature: Int, buf: Int, size: Int) [ffi]
 // Read a serialisation format from its name.
 //
 // The names are `"text"` and `"json"`.  The call upper-cases the name
-// and reads it as a tag WITHOUT checking it, so a name it does not
+// and reads it as a tag without checking it, so a name it does not
 // know answers a tag that is not a format rather than a 0, and only an
 // empty name answers 0.  `len` is -1 for "up to the terminator".
 pub @ffi(library = "harfbuzz", symbol = "hb_buffer_serialize_format_from_string")
